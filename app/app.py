@@ -1,118 +1,69 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, jsonify, send_file
 from pymongo import MongoClient
-import gridfs
-from bson import ObjectId
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import chardet
-from docx import Document
-import fitz  # PyMuPDF
+import hashlib
 import io
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
-client = MongoClient('mongodb://localhost:27017/')
-db = client['file_db']
-fs = gridfs.GridFS(db)
 
-@app.route('/')
+# MongoDB bağlantısı ve koleksiyon tanımlaması
+client = MongoClient('mongodb://localhost:27017/')
+db = client['document_management']
+documents_collection = db['documents']
+
+# Ana sayfa, dosya yükleme formu
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
-@app.route('/benimsayfa', methods=['POST'])
-def benimsayfa():
-    print("çalışıyor")
-    return render_template('benimsayfa.html')
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'file' not in request.files:
-        flash('Dosya parçası yok')
-        return redirect(request.url)
-    
+# Dosya yükleme işlemi
+@app.route('/', methods=['POST'])
+def upload_file():
     file = request.files['file']
-    if file.filename == '':
-        flash('Seçili dosya yok')
-        return redirect(request.url)
-
     file_content = file.read()
-    text_content = None
 
-    try:
-        if file.filename.endswith('.txt'):
-            result = chardet.detect(file_content)
-            encoding = result['encoding'] if result['encoding'] else 'utf-8'
-            text_content = file_content.decode(encoding)
-        elif file.filename.endswith('.docx'):
-            document = Document(io.BytesIO(file_content))
-            text_content = '\n'.join([para.text for para in document.paragraphs])
-        elif file.filename.endswith('.pdf'):
-            pdf_document = fitz.open(stream=io.BytesIO(file_content), filetype="pdf")
-            text_content = ''
-            for page_num in range(len(pdf_document)):
-                page = pdf_document[page_num]
-                text_content += page.get_text()
-        else:
-            flash('Dosya formatı desteklenmiyor')
-            return redirect(request.url)
-    except Exception as e:
-        flash(f'Dosya işlenirken hata oluştu: {str(e)}')
-        return redirect(request.url)
+    # Dosyanın içeriğini SHA-256 ile hashleme
+    file_hash = hashlib.sha256(file_content).hexdigest()
 
-    if not text_content:
-        flash('Dosya içeriği alınamadı')
-        return redirect(request.url)
+    # Veritabanında aynı hash değerine sahip belgeyi kontrol et
+    existing_document = documents_collection.find_one({'hash': file_hash})
 
-    files = fs.find()
-    for existing_file in files:
-        existing_content = fs.get(existing_file._id).read()
-        try:
-            result = chardet.detect(existing_content)
-            encoding = result['encoding'] if result['encoding'] else 'utf-8'
-            existing_text_content = existing_content.decode(encoding)
-        except UnicodeDecodeError:
-            continue  # Skip non-text files
-        
-        similarity_score = compute_similarity(text_content, existing_text_content)
-        if similarity_score > 0.99:
-            flash('Dosya zaten mevcut.')
-            return redirect(url_for('index'))
-
-    fs.put(file_content, filename=file.filename)
-    flash('Dosya başarıyla yüklendi')
-    return redirect(url_for('index'))
-
-def compute_similarity(doc1, doc2):
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform([doc1, doc2])
-    cos_sim = cosine_similarity(tfidf_matrix)
-    similarity_score = cos_sim[0, 1]
-    return similarity_score
-
-@app.route('/files')
-def list_files():
-    files = fs.find()
-    return render_template('list_files.html', files=files)
-
-@app.route('/download/<file_id>')
-def download(file_id):
-    file = fs.get(ObjectId(file_id))
-    response = send_file(io.BytesIO(file.read()), download_name=file.filename, as_attachment=True)
-    response.headers['Content-Type'] = 'application/octet-stream; charset=utf-8'
-    return response
-
-@app.route('/update/<file_id>', methods=['GET', 'POST'])
-def update(file_id):
-    if request.method == 'POST':
-        file = request.files['file']
-        if file:
-            fs.delete(ObjectId(file_id))
-            fs.put(file.read(), filename=file.filename)
-            flash('Dosya başarıyla güncellendi')
-            return redirect(url_for('list_files'))
+    if existing_document:
+        return jsonify({'message': 'Bu belge zaten var.'}), 400
     else:
-        file = fs.get(ObjectId(file_id))
-        return render_template('update_file.html', file=file)
+        # Yeni belgeyi veritabanına ekle
+        document_data = {
+            'filename': file.filename,
+            'content': file_content,
+            'hash': file_hash
+        }
+        documents_collection.insert_one(document_data)
+        return jsonify({'message': 'Belge başarıyla yüklendi.'}), 200
+
+# Yüklenmiş belgeleri listeleme
+@app.route('/list_documents', methods=['GET'])
+def list_documents():
+    documents = list(documents_collection.find({}, {'_id': 0}))  # _id alanını hariç tut
+
+    # HTML içeriğini oluşturma
+    html_content = '<h1>Yüklenmiş Belgeler</h1><ul>'
+    for doc in documents:
+        filename = doc['filename']
+        html_content += f'<li><a href="/download/{filename}">{filename}</a></li>'
+    html_content += '</ul>'
+    
+    return html_content
+
+# Belge indirme endpoint'i
+@app.route('/download/<filename>', methods=['GET'])
+def download_file(filename):
+    document = documents_collection.find_one({'filename': filename})
+    if document:
+        file_content = document['content']
+        return send_file(io.BytesIO(file_content),
+                         download_name=filename,
+                         as_attachment=True)
+    else:
+        return jsonify({'message': 'Belge bulunamadı.'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

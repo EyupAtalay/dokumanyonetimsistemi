@@ -7,13 +7,13 @@
 </head>
 <body>
 
-    <br>
-    <a href="/files">dosyalar</a>
-    <form action="/benimsayfa" method="post">
-        <input type ="submit" name="benimbuton" value="Dosya Yükle">
-        
+    
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Dosya Yükle">
     </form>
-
+    <br>
+    <a href="/list_documents">Yüklenmiş Belge Listesi</a>
 
 </body>
 
