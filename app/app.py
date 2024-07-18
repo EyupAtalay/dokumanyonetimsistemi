@@ -7,8 +7,8 @@ app = Flask(__name__)
 
 # MongoDB bağlantısı ve koleksiyon tanımlaması
 client = MongoClient('mongodb://localhost:27017/')
-db = client['document_management']
-documents_collection = db['documents']
+db = client['dokuman_versiyon']
+documents_collection = db['dokuman']
 
 # Ana sayfa, dosya yükleme formu
 @app.route('/', methods=['GET'])
@@ -40,7 +40,7 @@ def upload_file():
         return jsonify({'message': 'Belge başarıyla yüklendi.'}), 200
 
 # Yüklenmiş belgeleri listeleme
-@app.route('/list_documents', methods=['GET'])
+@app.route('/dosyalar', methods=['GET'])
 def list_documents():
     documents = list(documents_collection.find({}, {'_id': 0}))  # _id alanını hariç tut
 
