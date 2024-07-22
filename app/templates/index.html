@@ -1,20 +1,22 @@
 <!doctype html>
 <html lang="en">
 <head>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stil.css') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>dosya yukle</title>
 </head>
 <body>
-
+    <div class="center-container">
     
     <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Dosya Yükle">
+        <input type="file" name="file" class="link-button">
+        <input type="submit" value="Dosya Yükle" class="submit-button">
     </form>
     <br>
     <a href="/dosyalar">Yüklenmiş Belge Listesi</a>
-
+</div>
 </body>
 
 </html>

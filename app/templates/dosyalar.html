@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stil.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ 
+</head>
+<body>
+    <h1>Yüklenmiş Belgeler</h1>
+    <ul>
+        {% for doc in documents %}
+            <li><a href="/download/{{ doc.filename }}">{{ doc.filename }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

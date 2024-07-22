@@ -1,0 +1,93 @@
+body {
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.center-container {
+    text-align: center;
+}
+.text-t{
+
+    text-align: center;
+}
+
+.upload-button {
+    display: block;
+    margin: 10px auto; /* Ortalamak için auto margin */
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
+.submit-button {
+    display: block;
+    margin: 10px auto;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50; /* Özel arka plan rengi */
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.submit-button:hover {
+    background-color: #45a049; /* Hover etkisi */
+}
+
+.link-button {
+    display: block;
+    margin: 10px auto;
+    padding: 10px 20px;
+    font-size: 16px;
+    text-decoration: none;
+    background-color: #008CBA;
+    color: white;
+    border-radius: 5px;
+}
+
+.link-button:hover {
+    background-color: #007B9E; /* Hover etkisi */
+}
+title {
+    color: #4CAF50; /* Başlık rengi */
+    font-size: 2em; /* Başlık font boyutu */
+    text-align: center; /* Başlığı ortala */
+    margin-bottom: 20px; /* Başlık alt boşluk */
+}
+ul {
+    color: #4CAF50; /* Başlık rengi */
+    list-style-type: none; /* Noktaları kaldır */
+    
+    padding: 0;
+}
+
+li {
+    margin: 10px 0; /* Liste öğeleri arasına boşluk */
+    color: #4caf4fa8; /* Başlık rengi */
+}
+
+a {
+    color: #000000; /* Link rengi */
+    text-decoration: none; /* Alt çizgiyi kaldır */
+    font-weight: bold; /* Kalın font */
+}
+h1 {
+    color: #009c08; /* Link rengi */
+    text-decoration: none; /* Alt çizgiyi kaldır */
+    font-weight: bold; /* Kalın font */
+}
+body {
+    background-image: url('../images/aa00.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
