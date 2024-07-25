@@ -1,11 +1,3 @@
-body {
-    
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
 
 .center-container {
     text-align: center;
@@ -71,13 +63,13 @@ li {
 
 a {
     color: #000000; /* Link rengi */
-    text-decoration: none; /* Alt çizgiyi kaldır */
-    font-weight: bold; /* Kalın font */
+
+   
 }
 h1 {
     color: #009c08; /* Link rengi */
     text-decoration: none; /* Alt çizgiyi kaldır */
-    font-weight: bold; /* Kalın font */
+
 }
 body {
     background-image: url('../images/aa00.jpg');
@@ -85,9 +77,9 @@ body {
     background-size: cover;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 60vh;
+
+    height: 30vh;
+    
     margin: 0;
     font-family: Arial, sans-serif;
 }

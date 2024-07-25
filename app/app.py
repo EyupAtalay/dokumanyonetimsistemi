@@ -17,24 +17,41 @@ def index():
     return render_template('index.html')
 
 def get_new_versioned_filename(filename):
+    # Dosya adı ve uzantısını ayır
+    if '.' in filename:
+        name, extension = filename.rsplit('.', 1)
+        extension = '.' + extension
+    else:
+        name = filename
+        extension = ''
+    
+    # Versiyon numarasını kontrol et
+    if '_v' in name:
+        parts = name.rsplit('_v', 1)
+        if parts[1].isdigit():
+            new_version = int(parts[1]) + 1
+            return f"{parts[0]}_v{new_version}{extension}"
+    
     # Mevcut versiyonları kontrol et
-    existing_versions = list(documents_collection.find({'filename': {'$regex': f'^{filename}(\\_v[0-9]+)?$'}}))
+    existing_versions = list(documents_collection.find({'filename': {'$regex': f'^{name}_v[0-9]+{extension}$'}}))
+    
+    # Versiyon numarası yoksa ve mevcut versiyon da yoksa v1 ekle
     if not existing_versions:
-        return filename  # İlk versiyon
+        return f"{name}_v1{extension}"
 
+    # Mevcut versiyon numaralarını bul ve yeni versiyonu belirle
     version_numbers = []
     for doc in existing_versions:
-        # Dosya isimlerindeki versiyon numaralarını ayıkla
         parts = doc['filename'].rsplit('_v', 1)
-        if len(parts) == 2 and parts[1].isdigit():
-            version_numbers.append(int(parts[1]))
+        if len(parts) == 2 and parts[1].split('.')[0].isdigit():
+            version_numbers.append(int(parts[1].split('.')[0]))
 
     if version_numbers:
         new_version = max(version_numbers) + 1
     else:
         new_version = 1
 
-    return f"{filename}_v{new_version}"
+    return f"{name}_v{new_version}{extension}"
 
 # Dosya yükleme işlemi
 @app.route('/', methods=['POST'])
@@ -68,8 +85,9 @@ def upload_file():
 def list_documents():
     documents = list(documents_collection.find({}, {'_id': 0}))  # _id alanını hariç tut
 
-    # HTML şablonunu render et
-    return render_template('dosyalar.html', documents=documents)
+
+    
+    return render_template('dosyalar.html',documents=documents)
 
 # Belge indirme endpoint'i
 @app.route('/download/<filename>', methods=['GET'])
@@ -96,7 +114,6 @@ def download_file(filename):
             return jsonify({'message': 'Belge bulunamadı.'}), 404
     else:
         return jsonify({'message': 'Belge bulunamadı.'}), 404
-
 
 if __name__ == '__main__':
     app.run(debug=True)
