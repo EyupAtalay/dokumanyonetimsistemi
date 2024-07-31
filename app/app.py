@@ -89,6 +89,10 @@ def list_documents():
     
     return render_template('dosyalar.html',documents=documents)
 
+@app.route('/kayıtol',methods=['GET'])
+def kayıtol():
+    return render_template('kayıt.html')
+
 # Belge indirme endpoint'i
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
