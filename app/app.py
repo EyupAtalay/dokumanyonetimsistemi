@@ -72,7 +72,8 @@ def upload_file():
     existing_document = documents_collection.find_one({'hash': file_hash})
 
     if existing_document:
-        return jsonify({'message': 'Bu belge zaten var.'}), 400
+        return render_template('index.html', message='Bu belge zaten var.')
+    
     else:
         # Aynı isimdeki dosyalar için versiyon belirleme
         new_filename = get_new_versioned_filename(file.filename)
@@ -84,7 +85,8 @@ def upload_file():
             'hash': file_hash
         }
         documents_collection.insert_one(document_data)
-        return render_template('index.html')
+        
+        return render_template('index.html',message='Dosya başarıyla yüklendi.')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
