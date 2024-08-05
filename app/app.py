@@ -1,20 +1,26 @@
 from bson import ObjectId
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, flash,render_template, request, jsonify, send_file, session
 from pymongo import MongoClient
 import hashlib
 import io
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 app = Flask(__name__)
+app.secret_key = 'eyupatalay'
 
 # MongoDB bağlantısı ve koleksiyon tanımlaması
 client = MongoClient('mongodb://localhost:27017/')
 db = client['dokuman_versiyon']
 documents_collection = db['dokuman']
+users_collection = db['users']
+
 
 # Ana sayfa, dosya yükleme formu
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    
+    return render_template('login.html')
 
 def get_new_versioned_filename(filename):
     # Dosya adı ve uzantısını ayır
@@ -78,10 +84,32 @@ def upload_file():
             'hash': file_hash
         }
         documents_collection.insert_one(document_data)
-        return jsonify({'message': f'Belge başarıyla yüklendi: {new_filename}'}), 200
+        return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        name = request.form['name']
+        password = request.form['password']
+        
+        # Kullanıcıyı veritabanından bulma
+        user = users_collection.find_one({'name': name})
+
+        if user and check_password_hash(user['password'], password):
+            # Kullanıcı doğrulandı, oturum aç
+            
+            session['user_id'] = str(user['_id'])
+            
+            return render_template('index.html')
+        else:
+            flash('Kullanıcı adı veya şifre yanlış', 'danger')
+            
+    
+    return render_template('login.html')
+    
 
 # Yüklenmiş belgeleri listeleme
-@app.route('/dosyalar', methods=['GET'])
+@app.route('/dosyalar', methods=(['GET','POST']))
 def list_documents():
     documents = list(documents_collection.find({}, {'_id': 0}))  # _id alanını hariç tut
 
@@ -89,8 +117,23 @@ def list_documents():
     
     return render_template('dosyalar.html',documents=documents)
 
-@app.route('/kayıtol',methods=['GET'])
-def kayıtol():
+
+
+@app.route('/kayıtol', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        password = request.form['password']
+        
+        # Şifreyi hash'leyerek güvenli hale getirme
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+
+        # Kullanıcı verilerini MongoDB'ye kaydetme
+        users_collection.insert_one({'name': name, 'password': hashed_password})
+
+    
+        
+
     return render_template('kayıt.html')
 
 # Belge indirme endpoint'i

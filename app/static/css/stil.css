@@ -1,5 +1,6 @@
 
 .center-container {
+    margin-top: 250px; 
     text-align: center;
 }
 .text-t{
@@ -62,7 +63,7 @@ li {
 }
 
 a {
-    color: #000000; /* Link rengi */
+    color: #13a100; /* Link rengi */
 
    
 }
