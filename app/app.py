@@ -1,10 +1,9 @@
 from bson import ObjectId
-from flask import Flask, flash,render_template, request, jsonify, send_file, session
+from flask import Flask, flash, render_template, request, jsonify, send_file, session
 from pymongo import MongoClient
 import hashlib
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
-
 
 app = Flask(__name__)
 app.secret_key = 'eyupatalay'
@@ -15,11 +14,10 @@ db = client['dokuman_versiyon']
 documents_collection = db['dokuman']
 users_collection = db['users']
 
-
 # Ana sayfa, dosya yükleme formu
 @app.route('/', methods=['GET'])
 def index():
-    
+
     return render_template('login.html')
 
 def get_new_versioned_filename(filename):
@@ -62,6 +60,9 @@ def get_new_versioned_filename(filename):
 # Dosya yükleme işlemi
 @app.route('/', methods=['POST'])
 def upload_file():
+    if 'user_id' not in session:
+        return render_template('login.html', message='Oturum açmanız gerekiyor.')
+
     file = request.files['file']
     file_content = file.read()
 
@@ -69,7 +70,7 @@ def upload_file():
     file_hash = hashlib.sha256(file_content).hexdigest()
 
     # Veritabanında aynı hash değerine sahip belgeyi kontrol et
-    existing_document = documents_collection.find_one({'hash': file_hash})
+    existing_document = documents_collection.find_one({'hash': file_hash, 'user_id': session['user_id']})
 
     if existing_document:
         return render_template('index.html', message='Bu belge zaten var.')
@@ -82,11 +83,12 @@ def upload_file():
         document_data = {
             'filename': new_filename,
             'content': file_content,
-            'hash': file_hash
+            'hash': file_hash,
+            'user_id': session['user_id']
         }
         documents_collection.insert_one(document_data)
         
-        return render_template('index.html',message='Dosya başarıyla yüklendi.')
+        return render_template('index.html', message='Dosya başarıyla yüklendi.')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -99,26 +101,20 @@ def login():
 
         if user and check_password_hash(user['password'], password):
             # Kullanıcı doğrulandı, oturum aç
-            
             session['user_id'] = str(user['_id'])
-            
             return render_template('index.html')
-
-            
     
-    return render_template('login.html',message='Kullanıcı adı veya şifre yanlış')
+    return render_template('login.html', message='Kullanıcı adı veya şifre yanlış')
     
 
 # Yüklenmiş belgeleri listeleme
-@app.route('/dosyalar', methods=(['GET','POST']))
+@app.route('/dosyalar', methods=['GET', 'POST'])
 def list_documents():
-    documents = list(documents_collection.find({}, {'_id': 0}))  # _id alanını hariç tut
-
-
+    if 'user_id' not in session:
+        return render_template('login.html', message='Oturum açmanız gerekiyor.')
     
-    return render_template('dosyalar.html',documents=documents)
-
-
+    documents = list(documents_collection.find({'user_id': session['user_id']}, {'_id': 0}))  # _id alanını hariç tut
+    return render_template('dosyalar.html', documents=documents)
 
 @app.route('/kayıtol', methods=['GET', 'POST'])
 def register():
@@ -131,16 +127,16 @@ def register():
 
         # Kullanıcı verilerini MongoDB'ye kaydetme
         users_collection.insert_one({'name': name, 'password': hashed_password})
-
-    
         
-
     return render_template('kayıt.html')
 
 # Belge indirme endpoint'i
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
-    document = documents_collection.find_one({'filename': filename})
+    if 'user_id' not in session:
+        return render_template('login.html', message='Oturum açmanız gerekiyor.')
+
+    document = documents_collection.find_one({'filename': filename, 'user_id': session['user_id']})
     if document:
         document_id = str(document['_id'])  # _id alanını alıyoruz
         try:
