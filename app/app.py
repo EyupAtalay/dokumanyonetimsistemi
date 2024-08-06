@@ -103,11 +103,10 @@ def login():
             session['user_id'] = str(user['_id'])
             
             return render_template('index.html')
-        else:
-            flash('Kullanıcı adı veya şifre yanlış', 'danger')
+
             
     
-    return render_template('login.html')
+    return render_template('login.html',message='Kullanıcı adı veya şifre yanlış')
     
 
 # Yüklenmiş belgeleri listeleme
