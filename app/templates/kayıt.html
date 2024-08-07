@@ -66,6 +66,11 @@
                 <button type="submit">Kayıt Ol</button>
             </div>
         </form>
+        {% if message %}
+        <div class="alert alert-warning mt-3" role="alert">
+            {{ message }}
+        </div>
+        {% endif %}
     </div>
         
 </body>

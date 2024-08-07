@@ -128,7 +128,13 @@ def register():
         # Kullanıcı verilerini MongoDB'ye kaydetme
         users_collection.insert_one({'name': name, 'password': hashed_password})
         
+        return render_template('kayıt.html',message="Başarıyla Kayıt Olundu")
     return render_template('kayıt.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return render_template('login.html', message='Başarıyla çıkış yaptınız.')
 
 # Belge indirme endpoint'i
 @app.route('/download/<filename>', methods=['GET'])
@@ -158,6 +164,8 @@ def download_file(filename):
             return jsonify({'message': 'Belge bulunamadı.'}), 404
     else:
         return jsonify({'message': 'Belge bulunamadı.'}), 404
-
+@app.route('/anasayfa')
+def anasayfa():
+    return render_template('index.html')
 if __name__ == '__main__':
     app.run(debug=True)
