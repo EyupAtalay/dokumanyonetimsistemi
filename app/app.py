@@ -1,9 +1,10 @@
 from bson import ObjectId
-from flask import Flask, flash, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session
 from pymongo import MongoClient
 import hashlib
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'eyupatalay'
@@ -118,15 +119,17 @@ def list_documents():
 
 @app.route('/kayıtol', methods=['GET', 'POST'])
 def register():
+    registration_date = datetime.now()
     if request.method == 'POST':
         name = request.form['name']
         password = request.form['password']
+        
         
         # Şifreyi hash'leyerek güvenli hale getirme
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
         # Kullanıcı verilerini MongoDB'ye kaydetme
-        users_collection.insert_one({'name': name, 'password': hashed_password})
+        users_collection.insert_one({'name': name, 'password': hashed_password,'tarih': registration_date})
         
         return render_template('kayıt.html',message="Başarıyla Kayıt Olundu")
     return render_template('kayıt.html')
@@ -164,8 +167,26 @@ def download_file(filename):
             return jsonify({'message': 'Belge bulunamadı.'}), 404
     else:
         return jsonify({'message': 'Belge bulunamadı.'}), 404
+    
+
+
+
 @app.route('/anasayfa')
 def anasayfa():
     return render_template('index.html')
+
+
+@app.route('/profil')
+def profile():
+    if 'user_id' not in session:
+        return render_template('login.html', message='Oturum açmanız gerekiyor.')
+
+    user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+    if user:
+        return render_template('profil.html', user=user)
+    else:
+        return jsonify({'message': 'Kullanıcı bulunamadı.'}), 404
+
+
 if __name__ == '__main__':
     app.run(debug=True)
