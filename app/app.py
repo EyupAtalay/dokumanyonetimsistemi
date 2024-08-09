@@ -5,6 +5,7 @@ import hashlib
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import re
 
 app = Flask(__name__)
 app.secret_key = 'eyupatalay'
@@ -65,6 +66,7 @@ def upload_file():
         return render_template('login.html', message='Oturum açmanız gerekiyor.')
 
     file = request.files['file']
+    visibility = request.form.get('visibility')  # Public/Private seçeneği
     file_content = file.read()
 
     # Dosyanın içeriğini SHA-256 ile hashleme
@@ -85,11 +87,30 @@ def upload_file():
             'filename': new_filename,
             'content': file_content,
             'hash': file_hash,
-            'user_id': session['user_id']
+            'user_id': session['user_id'],
+            'visibility': visibility,  # Public/Private bilgisi
+            'upload_date': datetime.now()
         }
         documents_collection.insert_one(document_data)
         
         return render_template('index.html', message='Dosya başarıyla yüklendi.')
+
+@app.route('/publicdosya', methods=['GET'])
+def public_files():
+    public_documents = documents_collection.find({'visibility': 'public'})
+    documents_with_user_info = []
+
+    for doc in public_documents:
+        user = users_collection.find_one({'_id': ObjectId(doc['user_id'])})
+        documents_with_user_info.append({
+            'filename': doc['filename'],
+            'upload_date': doc['upload_date'],
+            'uploader_name': user['name'] if user else 'Bilinmiyor'
+        })
+
+    return render_template('publicdosya.html', documents=documents_with_user_info)
+
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -124,14 +145,36 @@ def register():
         name = request.form['name']
         password = request.form['password']
         
+        # Kullanıcı adı kuralları: en az 3 karakter, sadece harf ve rakamlar
+        if len(name) < 4:
+            return render_template('kayıt.html', message="Kullanıcı adı en az 4 karakter uzunluğunda olmalıdır.")
+        
+        if not re.match("^[a-zA-Z0-9]+$", name):
+            return render_template('kayıt.html', message="Kullanıcı adı yalnızca harfler ve rakamlar içerebilir.")
+        
+        # Kullanıcı adının zaten mevcut olup olmadığını kontrol et
+        existing_user = users_collection.find_one({'name': name})
+        if existing_user:
+            return render_template('kayıt.html', message="Bu kullanıcı adı zaten mevcut. Lütfen başka bir kullanıcı adı seçin.")
+        
+        # Şifre kuralları: en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam, bir özel karakter
+        if len(password) < 8:
+            return render_template('kayıt.html', message="Şifre en az 8 karakter uzunluğunda olmalıdır.")
+        
+        if not re.search("[a-z]", password):
+            return render_template('kayıt.html', message="Şifre en az bir küçük harf içermelidir.")
+        
+        if not re.search("[0-9]", password):
+            return render_template('kayıt.html', message="Şifre en az bir rakam içermelidir.")
         
         # Şifreyi hash'leyerek güvenli hale getirme
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
         # Kullanıcı verilerini MongoDB'ye kaydetme
-        users_collection.insert_one({'name': name, 'password': hashed_password,'tarih': registration_date})
+        users_collection.insert_one({'name': name, 'password': hashed_password, 'tarih': registration_date})
         
-        return render_template('kayıt.html',message="Başarıyla Kayıt Olundu")
+        return render_template('kayıt.html', message="Başarıyla Kayıt Olundu")
+    
     return render_template('kayıt.html')
 
 @app.route('/logout')

@@ -13,11 +13,16 @@
     
     <form method="POST" enctype="multipart/form-data" action="/">
         <input type="file" name="file" class="link-button">
+        <label for="visibility">Dosya Görünürlüğü:</label>
+        <select name="visibility" id="visibility">
+            <option value="private">Private</option>
+            <option value="public">Public</option>
+        </select>
+    
         <input type="submit" value="Dosya Yükle" class="submit-button">
     </form>
     
     <br>
-    <a href="/dosyalar">Yüklenmiş Belge Listesi</a>
 
     {% if message %}
     <div class="alert alert-warning mt-3" role="alert">

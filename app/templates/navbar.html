@@ -9,7 +9,7 @@
        
           {% if session.user_id %}
           <li class="nav-item">
-            <a class="navbar-brand" href="/anasayfa">Döküman Yönetim Sistemi</a>
+            <a class="nav-link" href="/anasayfa">Döküman Yönetim Sistemi</a>
           </li>
 
           <li class="nav-item">
@@ -19,17 +19,25 @@
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="/profil">Hesabım</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/dosyalar">Dosyalar</a>
+          </li>
         
           <li class="nav-item">
-            <a class="nav-link" href="/logout" style="position: absolute; right: 0;">Çıkış Yap</a>
+            <a class="nav-link active" aria-current="page" href="/logout" style="position: absolute; right: 0;">Çıkış Yap</a>
         </li>
-
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="/publicdosya">Tüm Dosyalar</a>
+        </li>
         {% else %}
         <li class="nav-item">
-          <a class="navbar-brand" href="/">Döküman Yönetim Sistemi</a>
+          <a class="nav-link active" href="/">Giriş Yap</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/kayıtol">Kayıt Ol</a>
+          <a class="nav-link active" href="/kayıtol">Kayıt Ol</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="/publicdosya">Tüm Dosyalar</a>
         </li>
 
         {% endif %}

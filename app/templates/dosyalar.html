@@ -11,22 +11,18 @@
 <body>
     {% include 'navbar.html' %}
 
-    <h1 style="text-align: center;">Yüklenmiş Belgeler</h1>
+    <h1 style="text-align: center; font-size: 40px; color: black;">Kişisel Belgeler</h1>
     <div class="card">
         <div class="card-body">
-
-            {% for doc in documents %}
-          
-                <li style="text-align: center;" ><a href="/download/{{ doc.filename }}">{{ doc.filename }} </a></li>
-          
-            
-        {% endfor %}
-
-
+            <ul class="list-group">
+                {% for doc in documents %}
+                <li class="list-group-item text-center">
+                    <a href="/download/{{ doc.filename }}">{{ doc.filename }}</a><br>
+                    <small>Yükleme Tarihi: <strong>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M:%S') }}</strong></small>
+                </li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
-    <ul>
-      
-    </ul>
 </body>
 </html>
