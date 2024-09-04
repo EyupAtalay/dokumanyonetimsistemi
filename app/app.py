@@ -1,5 +1,5 @@
 from bson import ObjectId
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session,redirect, url_for
 from pymongo import MongoClient
 import hashlib
 import io
@@ -15,6 +15,7 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['dokuman_versiyon']
 documents_collection = db['dokuman']
 users_collection = db['users']
+categories_collection = db['categories']
 
 # Ana sayfa, dosya yükleme formu
 @app.route('/', methods=['GET'])
@@ -67,6 +68,7 @@ def upload_file():
 
     file = request.files['file']
     visibility = request.form.get('visibility')  # Public/Private seçeneği
+
     file_content = file.read()
 
     # Dosyanın içeriğini SHA-256 ile hashleme
@@ -81,19 +83,27 @@ def upload_file():
     else:
         # Aynı isimdeki dosyalar için versiyon belirleme
         new_filename = get_new_versioned_filename(file.filename)
-
+        tags = request.form.get('tags')
+        tags_list = [tag.strip() for tag in tags.split(',')] if tags else []
         # Yeni belgeyi veritabanına ekle
+                # En fazla 3 etiket olmasını sağla
+        if len(tags_list) > 3:
+            return render_template('index.html', message='En fazla 3 etiket girilebilir.')
         document_data = {
             'filename': new_filename,
             'content': file_content,
             'hash': file_hash,
             'user_id': session['user_id'],
+            'tags': tags_list,
             'visibility': visibility,  # Public/Private bilgisi
             'upload_date': datetime.now()
         }
         documents_collection.insert_one(document_data)
-        
+
         return render_template('index.html', message='Dosya başarıyla yüklendi.')
+
+#ajax
+
 
 @app.route('/publicdosya', methods=['GET'])
 def public_files():
@@ -105,10 +115,65 @@ def public_files():
         documents_with_user_info.append({
             'filename': doc['filename'],
             'upload_date': doc['upload_date'],
-            'uploader_name': user['name'] if user else 'Bilinmiyor'
+            'uploader_name': user['name'] if user else 'Bilinmiyor',
+            'tags': doc.get('tags', [])  # Tags alanını ekleyin
         })
 
     return render_template('publicdosya.html', documents=documents_with_user_info)
+
+
+@app.route('/server_processing')
+def server_processing():
+    draw = request.args.get('draw')
+    start = int(request.args.get('start'))
+    length = int(request.args.get('length'))
+    search_value = request.args.get('search[value]', '')
+    order_column_index = request.args.get('order[0][column]', 0)  # Varsayılan olarak 0. sütunu seç
+    order_column_dir = request.args.get('order[0][dir]', 'asc')  # Varsayılan olarak artan sıralama
+
+    # Sıralanabilir sütunlar
+    columns = ['filename', 'upload_date', 'user_id']  
+    order_column = columns[int(order_column_index)]
+    
+    # Sıralama yönü belirle
+    sort_order = 1 if order_column_dir == 'asc' else -1
+
+    # Sorgulama için filtreleme
+    query = {'visibility': 'public'}
+
+    if search_value:
+        query['$or'] = [
+            {'filename': {'$regex': search_value, '$options': 'i'}},
+            {'user_id': {'$regex': search_value, '$options': 'i'}},
+            {'tags': {'$elemMatch': {'$regex': search_value, '$options': 'i'}}}
+        ]
+
+    total_records = documents_collection.count_documents({'visibility': 'public'})
+    filtered_records = documents_collection.count_documents(query)
+
+    documents_cursor = documents_collection.find(query).sort(order_column, sort_order).skip(start).limit(length)
+
+    data = []
+    for doc in documents_cursor:
+        user = users_collection.find_one({'_id': ObjectId(doc['user_id'])})
+        uploader_name = user['name'] if user else 'Bilinmiyor'
+        data.append({
+            'filename': doc['filename'],
+            'upload_date': doc['upload_date'].strftime('%Y-%m-%d %H:%M:%S'),
+            'uploader_name': uploader_name,
+            'tags': doc.get('tags', [])
+        })
+
+    response = {
+        'draw': int(draw),
+        'recordsTotal': total_records,
+        'recordsFiltered': filtered_records,
+        'data': data
+    }
+    
+    return jsonify(response)
+
+
 
 
 
@@ -135,8 +200,10 @@ def list_documents():
     if 'user_id' not in session:
         return render_template('login.html', message='Oturum açmanız gerekiyor.')
     
-    documents = list(documents_collection.find({'user_id': session['user_id']}, {'_id': 0}))  # _id alanını hariç tut
+    documents = list(documents_collection.find({'user_id': session['user_id']}, {'_id': 0, 'tags': 1, 'filename': 1, 'upload_date': 1}))  # _id, tags, filename ve upload_date alanlarını dahil edin
+    
     return render_template('dosyalar.html', documents=documents)
+
 
 @app.route('/kayıtol', methods=['GET', 'POST'])
 def register():
@@ -212,6 +279,30 @@ def download_file(filename):
         return jsonify({'message': 'Belge bulunamadı.'}), 404
     
 
+@app.route('/delete/<filename>', methods=['POST'])
+def delete_file(filename):
+    if 'user_id' not in session:
+        return render_template('login.html', message='Oturum açmanız gerekiyor.')
+
+    document = documents_collection.find_one({'filename': filename})
+
+    if document:
+        if document['visibility'] == 'public':
+            # Public dosyalar için sadece yükleyici dosyayı silebilir
+            if document['user_id'] == session['user_id']:
+                documents_collection.delete_one({'_id': document['_id']})
+                return redirect('/dosyalar')
+            else:
+                return render_template('dosyalar.html', message='Bu dosyayı silme yetkiniz yok.')
+        else:
+            # Private dosyalar için tüm dosyalar silinebilir
+            documents_collection.delete_one({'_id': document['_id']})
+            return redirect('/dosyalar')
+    else:
+        return render_template('dosyalar.html', message='Dosya bulunamadı.')
+
+
+
 
 
 @app.route('/anasayfa')
@@ -229,6 +320,8 @@ def profile():
         return render_template('profil.html', user=user)
     else:
         return jsonify({'message': 'Kullanıcı bulunamadı.'}), 404
+
+
 
 
 if __name__ == '__main__':

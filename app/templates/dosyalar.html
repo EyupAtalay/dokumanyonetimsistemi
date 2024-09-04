@@ -18,7 +18,10 @@
                 {% for doc in documents %}
                 <li class="list-group-item text-center">
                     <a href="/download/{{ doc.filename }}">{{ doc.filename }}</a><br>
-                    <small>Yükleme Tarihi: <strong>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M:%S') }}</strong></small>
+                    <small>Yükleme Tarihi: <strong>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M:%S') }}</strong></small><br>
+                    <form action="/delete/{{ doc.filename }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                    </form>
                 </li>
                 {% endfor %}
             </ul>

@@ -12,12 +12,17 @@
     <div class="center-container">
     
     <form method="POST" enctype="multipart/form-data" action="/">
-        <input type="file" name="file" class="link-button">
+        <input type="file" name="file" class="link-button" required>
+
         <label for="visibility">Dosya Görünürlüğü:</label>
         <select name="visibility" id="visibility">
             <option value="private">Private</option>
             <option value="public">Public</option>
         </select>
+
+        <!-- Tags input -->
+        <label for="tags">Etiketler:</label>
+        <input type="text" name="tags" id="tags" placeholder="Etiketleri girin, virgülle ayırın" class="form-control">
     
         <input type="submit" value="Dosya Yükle" class="submit-button">
     </form>
